@@ -17,7 +17,7 @@
 #include <netinet/ip.h>
 #include <fnmatch.h>
 
-#define PORT 8000
+#define PORT 8001
 #define MAX_RESPONSE_SIZE 1024
 #define MAX_ARGUMENTS 10
 #define CHUNK_SIZE 16384
@@ -572,39 +572,18 @@ int main(int argc, char *argv[])
 
 	bind(sd, (struct sockaddr *)&servAdd, sizeof(servAdd));
 	listen(sd, 5);
-    int count = 0;
+
 	while (1)
-	{ 
+	{
 		csd = accept(sd, (struct sockaddr *)NULL, NULL);
 		printf("Got a client\n");
-        count++;
-        printf("Connections: %d\n", count);
-        char response[1024];
-        // if condition
-        if (count < 4)
-    {
-      snprintf(response, MAX_RESPONSE_SIZE, "success");
-
-    }
-    else if (count < 8)
-    {
-      snprintf(response, MAX_RESPONSE_SIZE, "8001");
-    }
-
-    else
-    {
-      if (count % 2 == 0)
-        snprintf(response, MAX_RESPONSE_SIZE, "success");
-      else
-        snprintf(response, MAX_RESPONSE_SIZE, "8001");
-    }
-        write(csd, response, strlen(response));
+        // char response[1024];
+        // snprintf(response, MAX_RESPONSE_SIZE, "success\n");
+        // write(csd, response, strlen(response));
         // pause();
 		if (!fork()) // Child process
 			processClient(csd);
 		close(csd);
-        
 		waitpid(0, &status, WNOHANG); // waitpid?
-        // count--;
 	}
 } // End main

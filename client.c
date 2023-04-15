@@ -9,38 +9,14 @@
 #include <sys/types.h>
 #include <sys/signal.h>
 #include <sys/wait.h>
+#include <utime.h>
+#include <signal.h>
+#include <sys/fcntl.h>
+#include <time.h>
+
 #define PORT 8000
 #define MAX_ARGUMENTS 10
 #define BUFFER_SIZE 1024
-
-int validate_input(char *buffer)
-{
-
-	// tokenize input
-	char *arguments[MAX_ARGUMENTS];
-	int num_arguments = 0;
-
-	// Parse the input commands
-	char *token = strtok(buffer, " "); // Tokenize command using space as delimiter
-
-	while (token != NULL)
-	{
-		arguments[num_arguments++] = token; // Store the token in the array
-		token = strtok(NULL, " ");			// Get the next token
-	}
-	arguments[num_arguments] = NULL; // Set the last element of the array to NULL
-
-	if (num_arguments < 1)
-	{
-		printf("Invalid command, try again\n");
-		return 0;
-	}
-	// todo validate input here further
-
-	// return 0 if any error
-
-	return 1;
-}
 
 void remove_linebreak(char **tokens, int num_tokens)
 {
@@ -53,6 +29,154 @@ void remove_linebreak(char **tokens, int num_tokens)
 		new_token[length] = '\0';
 		tokens[i] = new_token;
 	}
+}
+time_t convertStringToDate(char *date)
+{
+	struct tm tm = {0};
+	if (strptime(date, "%Y-%m-%d", &tm) == NULL)
+	{
+		return -1;
+	}
+	tm.tm_isdst = -1;
+	time_t temp;
+	temp = mktime(&tm);
+	return temp;
+}
+int validate_input(char *rawCommand)
+{
+	int isUnzip = 0;
+	char *ptr = strtok(rawCommand, " ");
+	char *local[50];
+	int cnt = 0;
+	int i = 0;
+	while (1)
+	{
+		char *ptr1 = strtok(NULL, " ");
+		if (ptr1 == NULL)
+		{
+			break;
+		}
+		if (strcmp(ptr1, "\n") == 0)
+		{
+			continue;
+		}
+		local[i] = ptr1;
+		i++;
+		cnt++;
+	}
+	if (cnt > 0 && strcmp(local[cnt - 1], "-u\n") == 0)
+	{
+		isUnzip = 1;
+	}
+	if (strcmp(ptr, "findfile") == 0)
+	{
+		if (cnt != 1)
+		{
+			fprintf(stderr, "Command Invalid - findfile `filename`\n");
+			return -1;
+		}
+		return 1;
+	}
+
+	if (strcmp(ptr, "sgetfiles") == 0)
+	{
+		if (cnt < 2 || cnt > 3)
+		{
+			fprintf(stderr, "Command Invalid - sgetfiles size1 size2 <-u>\n");
+			return -1;
+		}
+
+		int size1 = atoi(local[0]);
+		int size2 = atoi(local[1]);
+		if (size1 < 0 || size2 < 0)
+		{
+			fprintf(stderr, "Command Invalid - sgetfiles size1 size2 <-u>: [Size1, Size2] >= 0\n");
+			return -1;
+		}
+
+		if (size2 < size1)
+		{
+			fprintf(stderr,
+					"Command Invalid - sgetfiles size1 size2 <-u>: Size 1 should be less than equal to size 2\n");
+			return -1;
+		}
+
+		return 2;
+	}
+
+	if (strcmp(ptr, "dgetfiles") == 0)
+	{
+		if (cnt < 2 || cnt > 3)
+		{
+			fprintf(stderr, "Command Invalid - dgetfiles date1 date2 <-u>\n");
+			return -1;
+		}
+
+		time_t date1, date2;
+		date1 = convertStringToDate(local[0]);
+		date2 = convertStringToDate(local[1]);
+		if (date1 == -1 || date2 == -1)
+		{
+			fprintf(stderr, "Invalid date format should YYYY-MM-DD\n");
+			return -1;
+		}
+
+		if (date2 < date1)
+		{
+			fprintf(stderr, "date2 should be greater than equal to date1\n");
+			return -1;
+		}
+		return 2;
+	}
+
+	if (strcmp(ptr, "getfiles") == 0)
+	{
+
+		if (isUnzip == 0 && cnt > 6)
+		{
+			fprintf(stderr,
+					"Command Invalid - getfiles file1 file2 file3 file4 file5 file6(file 1 ..up to file6) <-u>\n");
+			return -1;
+		}
+
+		if (cnt < 1 || cnt > 7)
+		{
+			fprintf(stderr,
+					"Command Invalid - getfiles file1 file2 file3 file4 file5 file6(file 1 ..up to file6) <-u>\n");
+			return -1;
+		}
+
+		return 4;
+	}
+
+	if (strcmp(ptr, "gettargz") == 0)
+	{
+		if (isUnzip == 0 && cnt > 6)
+		{
+			fprintf(stderr, "Command Invalid - gettargz <extension list> <-u> //up to 6 different file types\n");
+			return -1;
+		}
+
+		if (cnt < 1 || cnt > 7)
+		{
+			fprintf(stderr, "Command Invalid - gettargz <extension list> <-u> //up to 6 different file types\n");
+			return -1;
+		}
+		return 5;
+	}
+
+	if (strcmp(ptr, "quit\n") == 0)
+	{
+		if (cnt)
+		{
+			fprintf(stderr, "Command Invalid - quit\n");
+			return -1;
+		}
+		return 6;
+	}
+
+	fprintf(stderr, "Command not supported!\n");
+	return -1;
 }
 
 int main(int argc, char *argv[])
@@ -92,19 +216,55 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("Connected to the server! \n");
 	read(sock, buffer, 1024);
 	printf("Message from server: %s \n\n", buffer);
 
+	// CHANGED
+	//----------------------------------------------------------------------------------------------------
+	if (strcmp(buffer, "success") != 0)
+	{
+		printf("Connecting to Mirror\n\n");
+		close(sock);
+		// int sock1=0;
+		// close(sock);
+		// server = connectToServer(message, argv[2]); // Connecting with Mirror , message contains IP of Mirror
+		// server = connectToServer(argv[1], buffer);
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		{
+			printf("Socket creation error\n");
+			return 1;
+		}
+
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(8001);
+
+		if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0)
+		{
+			printf("Invalid address or Address not supported\n");
+			return 1;
+		}
+
+		if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+		{
+			printf("Connection failed\n");
+			return 1;
+		}
+	}
+	else
+		printf("Connected to the server! \n");
+	//----------------------------------------------------------------------------------------------------
 	while (1)
 	{
-		printf("Enter a command: ");
+
+		printf("C$ ");
 		fgets(buffer, 1024, stdin);
 		// buffer[strcspn(buffer, "\n")] = 0; // remove newline character
 
 		strcpy(valbuf, buffer);
-		if (!validate_input(valbuf))
+		if (validate_input(valbuf) == -1)
+		{
 			continue;
+		}
 
 		// send command to server
 		send(sock, buffer, strlen(buffer), 0);
