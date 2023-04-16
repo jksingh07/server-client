@@ -1,3 +1,11 @@
+// ASP - PROJECT --> SERVER-CLIENT APPLICATION
+// Team Member - Jaskaran Singh Luthra (110090236), Harjot Singh Saggu (110093636)
+
+
+// CLIENT FILE
+
+
+// IMPORTING LIBRARIES
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,11 +22,14 @@
 #include <sys/fcntl.h>
 #include <time.h>
 
-#define PORT 8000
+// DEFINING MACROS
+#define PORT 8000    // PORT TO CONNECT WITH CLIENT
 #define MAX_ARGUMENTS 10
 #define BUFFER_SIZE 1024
-#define MIRROR_IP "192.168.2.33"
+#define MIRROR_IP "192.168.2.33" // IP TO CONNECT WITH MIRROR IF SERVER REDIRECTS LOAD/CONNECTIONS
 
+// funtion to removing line breaks from command
+// The remove_linebreak function removes newline characters from each string in an array of strings.
 void remove_linebreak(char **tokens, int num_tokens)
 {
 	for (int i = 0; i < num_tokens; i++)
@@ -31,6 +42,9 @@ void remove_linebreak(char **tokens, int num_tokens)
 		tokens[i] = new_token;
 	}
 }
+
+// converting string to date format
+// The convertStringToDate function converts a string in "YYYY-MM-DD" format to a time_t data type representing the same date and returns it.
 time_t convertStringToDate(char *date)
 {
 	struct tm tm = {0};
@@ -43,35 +57,46 @@ time_t convertStringToDate(char *date)
 	temp = mktime(&tm);
 	return temp;
 }
-int validate_input(char *rawCommand)
+
+// validating input command
+// The input_validation function takes a string input_command as input and validates it based on certain criteria. 
+// The function uses strtok to tokenize the input command and count the number of tokens.
+
+// findfile command - returns 1
+// sgetfiles command - returns 2
+// dgetfiles command - returns 2
+// getfiles command - returns 4
+// gettargz command - returns 5
+// quit command - returns 6
+int input_validation(char *input_command)
 {
-	int isUnzip = 0;
-	char *ptr = strtok(rawCommand, " ");
-	char *local[50];
-	int cnt = 0;
 	int i = 0;
+	char *cmd = strtok(input_command, " ");
+	int count = 0;
+	char *local[50];
+	int isUnzip = 0;
 	while (1)
 	{
-		char *ptr1 = strtok(NULL, " ");
-		if (ptr1 == NULL)
+		char *cmd1 = strtok(NULL, " ");
+		if (cmd1 == NULL)
 		{
 			break;
 		}
-		if (strcmp(ptr1, "\n") == 0)
+		if (strcmp(cmd1, "\n") == 0)
 		{
 			continue;
 		}
-		local[i] = ptr1;
+		local[i] = cmd1;
 		i++;
-		cnt++;
+		count++;
 	}
-	if (cnt > 0 && strcmp(local[cnt - 1], "-u\n") == 0)
+	if (count > 0 && strcmp(local[count - 1], "-u\n") == 0)
 	{
 		isUnzip = 1;
 	}
-	if (strcmp(ptr, "findfile") == 0)
+	if (strcmp(cmd, "findfile") == 0)
 	{
-		if (cnt != 1)
+		if (count != 1)
 		{
 			fprintf(stderr, "Command Invalid - findfile `filename`\n");
 			return -1;
@@ -79,9 +104,9 @@ int validate_input(char *rawCommand)
 		return 1;
 	}
 
-	if (strcmp(ptr, "sgetfiles") == 0)
+	if (strcmp(cmd, "sgetfiles") == 0)
 	{
-		if (cnt < 2 || cnt > 3)
+		if (count < 2 || count > 3)
 		{
 			fprintf(stderr, "Command Invalid - sgetfiles size1 size2 <-u>\n");
 			return -1;
@@ -105,9 +130,9 @@ int validate_input(char *rawCommand)
 		return 2;
 	}
 
-	if (strcmp(ptr, "dgetfiles") == 0)
+	if (strcmp(cmd, "dgetfiles") == 0)
 	{
-		if (cnt < 2 || cnt > 3)
+		if (count < 2 || count > 3)
 		{
 			fprintf(stderr, "Command Invalid - dgetfiles date1 date2 <-u>\n");
 			return -1;
@@ -130,17 +155,17 @@ int validate_input(char *rawCommand)
 		return 2;
 	}
 
-	if (strcmp(ptr, "getfiles") == 0)
+	if (strcmp(cmd, "getfiles") == 0)
 	{
 
-		if (isUnzip == 0 && cnt > 6)
+		if (isUnzip == 0 && count > 6)
 		{
 			fprintf(stderr,
 					"Command Invalid - getfiles file1 file2 file3 file4 file5 file6(file 1 ..up to file6) <-u>\n");
 			return -1;
 		}
 
-		if (cnt < 1 || cnt > 7)
+		if (count < 1 || count > 7)
 		{
 			fprintf(stderr,
 					"Command Invalid - getfiles file1 file2 file3 file4 file5 file6(file 1 ..up to file6) <-u>\n");
@@ -150,15 +175,15 @@ int validate_input(char *rawCommand)
 		return 4;
 	}
 
-	if (strcmp(ptr, "gettargz") == 0)
+	if (strcmp(cmd, "gettargz") == 0)
 	{
-		if (isUnzip == 0 && cnt > 6)
+		if (isUnzip == 0 && count > 6)
 		{
 			fprintf(stderr, "Command Invalid - gettargz <extension list> <-u> //up to 6 different file types\n");
 			return -1;
 		}
 
-		if (cnt < 1 || cnt > 7)
+		if (count < 1 || count > 7)
 		{
 			fprintf(stderr, "Command Invalid - gettargz <extension list> <-u> //up to 6 different file types\n");
 			return -1;
@@ -166,9 +191,9 @@ int validate_input(char *rawCommand)
 		return 5;
 	}
 
-	if (strcmp(ptr, "quit\n") == 0)
+	if (strcmp(cmd, "quit\n") == 0)
 	{
-		if (cnt)
+		if (count)
 		{
 			fprintf(stderr, "Command Invalid - quit\n");
 			return -1;
@@ -179,9 +204,10 @@ int validate_input(char *rawCommand)
 	fprintf(stderr, "Command not supported!\n");
 	return -1;
 }
-
+// main funtion
 int main(int argc, char *argv[])
 {
+	// declaring variables
 	int sock = 0, valread;
 	struct sockaddr_in serv_addr;
 	char buffer[1024] = {0};
@@ -189,6 +215,7 @@ int main(int argc, char *argv[])
 	char server_ip[16];
 	char *filename = "out.tar.gz";
 
+	// check the terminal command if arguments are leass that 2, correct command contains IP address as arg.
 	if (argc < 2)
 	{
 		printf("Usage: %s <server_ip>\n", argv[0]);
@@ -196,32 +223,33 @@ int main(int argc, char *argv[])
 	}
 	strcpy(server_ip, argv[1]);
 
+	// creating client socket
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		printf("Socket creation error\n");
 		return 1;
 	}
-
+	// Configure server address
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 
+	// Convert IPv4 and IPv6 addresses from text to binary form
 	if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0)
 	{
 		printf("Invalid address or Address not supported\n");
 		return 1;
 	}
-
+	// connecting to server
 	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 	{
 		printf("Connection failed\n");
 		return 1;
 	}
-
+	// receving message from server
 	read(sock, buffer, 1024);
 	printf("Message from server: %s \n\n", buffer);
 
-	// CHANGED
-	//----------------------------------------------------------------------------------------------------
+	// connecting to mirror
 	if (strcmp(buffer, "success") != 0)
 	{
 		printf("Connecting to Mirror\n\n");
@@ -235,16 +263,17 @@ int main(int argc, char *argv[])
 			printf("Socket creation error\n");
 			return 1;
 		}
-
+		// configuring address
 		serv_addr.sin_family = AF_INET;
 		serv_addr.sin_port = htons(8001);
 
+		// Convert IPv4 and IPv6 addresses from text to binary form
 		if (inet_pton(AF_INET, MIRROR_IP, &serv_addr.sin_addr) <= 0)
 		{
 			printf("Invalid address or Address not supported\n");
 			return 1;
 		}
-
+		// connecting to mirror
 		if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 		{
 			printf("Connection failed\n");
@@ -253,25 +282,25 @@ int main(int argc, char *argv[])
 	}
 	else
 		printf("Connected to the server! \n");
-	//----------------------------------------------------------------------------------------------------
 	while (1)
 	{
 
-		printf("C$ ");
+		printf("\nC$ ");
 		memset(buffer, 0, sizeof(buffer));
+		// waiting for input command
 		fgets(buffer, 1024, stdin);
 		// buffer[strcspn(buffer, "\n")] = 0; // remove newline character
 		// memset(buffer, 0, sizeof(buffer));
 		strcpy(valbuf, buffer);
-		if (validate_input(valbuf) == -1)
+		// validating command
+		if (input_validation(valbuf) == -1)
 		{
 			continue;
 		}
 
 		// send command to server
 		send(sock, buffer, strlen(buffer), 0);
-		
-		
+
 		char *arguments[MAX_ARGUMENTS];
 		int num_arguments = 0;
 
@@ -310,7 +339,7 @@ int main(int argc, char *argv[])
 			// memset(file_size, 0, sizeof(file_size));
 			recv(sock, &file_size, sizeof(file_size), 0);
 
-			printf(" File Size %ld\n", file_size);
+			printf("File Size %ld\n", file_size);
 
 			// Receive file data from server
 			long total_bytes_received = 0;
@@ -351,12 +380,18 @@ int main(int argc, char *argv[])
 			memset(buffer, 0, sizeof(buffer));
 			continue;
 		}
-		else
+		// Exit client if got quit
+		else if (strcmp(buffcmd, "quit") == 0)
 		{
-			printf("Buffer does not match the file trasfer or unzip pattern so no need for file transfer\n");
-		}
 
-		
+			printf("Response: quit ");
+
+			exit(0);
+		}
+		// else
+		//{
+		//	printf("Buffer does not match the file trasfer or unzip pattern so no need for file transfer\n");
+		// }
 
 		// receive response from server
 		memset(buffer, 0, sizeof(buffer));
@@ -377,4 +412,4 @@ int main(int argc, char *argv[])
 
 	close(sock);
 	return 0;
-}
+} // closing main funtion

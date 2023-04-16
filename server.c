@@ -1,3 +1,10 @@
+// ASP - PROJECT --> SERVER-CLIENT APPLICATION
+// Team Member - Jaskaran Singh Luthra (110090236), Harjot Singh Saggu (110093636)
+
+
+// SERVER FILE
+
+// IMPORTING LIBRARIES
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,12 +24,12 @@
 #include <netinet/ip.h>
 #include <fnmatch.h>
 
-#define PORT 8000
+#define PORT 8000   // PORT FOR SERVER
 #define MAX_RESPONSE_SIZE 1024
 #define MAX_ARGUMENTS 10
 #define CHUNK_SIZE 16384
 #define MAX_BUFFER_SIZE 1024
-#define MAX_EXTENSION_COUNT 6
+#define MAX_EXTENSION_COUNT 6  // GET ARGUMENTS MAXIMUM LIMIT
 
 // Terminal commands to start the project
 // cd ASP-Project
@@ -32,9 +39,6 @@
 // ./client 127.0.0.1 8000
 
 char files[MAX_BUFFER_SIZE];
-// int count;
-// char *files;
-
 
 // Function to transfer tar file which is temp.tar.gz to the client side
 int transfer_file(int new_socket, const char *filename)
@@ -57,7 +61,7 @@ int transfer_file(int new_socket, const char *filename)
 	}
 
 	// Close file and socket
-	memset(buffer,0,sizeof(buffer));
+	memset(buffer, 0, sizeof(buffer));
 	close(fd);
 
 	return 0;
@@ -81,6 +85,7 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 
 	while ((ent = readdir(dir)) != NULL)
 	{
+		// if its directory
 		if (ent->d_type == DT_DIR && strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0)
 		{
 			sprintf(buffer, "%s/%s", dir_name, ent->d_name);
@@ -90,7 +95,8 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 		{
 			for (i = 0; i < extension_count; i++)
 			{
-				if (fnmatch(file_types[i], ent->d_name, 0) == 0) // matching the extension of the file
+				// matching the extension of the file
+				if (fnmatch(file_types[i], ent->d_name, 0) == 0)
 				{
 					if (*files_len + strlen(dir_name) + strlen(ent->d_name) + 2 > MAX_BUFFER_SIZE)
 					{
@@ -108,12 +114,12 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 		}
 	}
 	closedir(dir);
-	memset(buffer,0,sizeof(buffer));
+	memset(buffer, 0, sizeof(buffer));
 
 	return 0;
 }
 
-// This function removes // with / in the path
+// This function removes '//' with '/' in the path
 void replace(char *str)
 {
 	char *ptr = str;
@@ -184,9 +190,9 @@ int gettargz(int client_sockfd, char **extensions, int extension_count, int unzi
 		return 0;
 	}
 	replace(files);
-	printf("Files: %s\n", files);
+	// printf("Files: %s\n", files);
 	sprintf(buffer, tar_command_format, temp_tar_name, files);
-	printf("%s\n", buffer);
+	// printf("%s\n", buffer);
 	status = system(buffer);
 	if (status != 0)
 	{
@@ -222,22 +228,24 @@ int gettargz(int client_sockfd, char **extensions, int extension_count, int unzi
 	return 0;
 }
 
+// funtion to find files - find the first occurance of file in the system and returns path to the client
 void findfile(int client_sockfd, char **arguments)
 {
 
 	char *filename = arguments[1];
-
-	// implement todo
-	printf("inside findfile\n");
 	char response[1024];
 	memset(response, 0, sizeof(response));
-	printf("filename: %s\n", filename);
+	printf("Filename: %s\n", filename);
 
-	char *home_dir = getenv("HOME");										  // Get the home directory path
-	char *command = (char *)malloc(strlen(home_dir) + strlen(filename) + 27); // Allocate memory for the command string
-	sprintf(command, "find %s -name '%s' -print -quit", home_dir, filename);  // Construct the find command
+	// Get the home directory path
+	char *home_dir = getenv("HOME");
+	// Allocate memory for the command string
+	char *command = (char *)malloc(strlen(home_dir) + strlen(filename) + 27);
+	// Construct the find command
+	sprintf(command, "find %s -name '%s' -print -quit", home_dir, filename);
 	printf("executing command: %s\n", command);
 	FILE *pipe = popen(command, "r"); // Open a pipe to the command
+
 	if (pipe != NULL)
 	{
 		char line[256];
@@ -269,15 +277,16 @@ void findfile(int client_sockfd, char **arguments)
 	memset(response, 0, sizeof(response));
 	free(command); // Free the memory allocated for the command string
 }
-
+// funtion to exectute getfiles command - return the mentioned files (search files in the system ) to the client in a zip
 void getfiles(int client_sockfd, char **arguments, int len)
 {
-	char files[6][100];
+	char files[6][100]; // can accept 6 files with char limit of 100
 	char cmd[500] = "find /Users/jaskaransingh -type f \\( -name ";
 	char temp[100];
 	int i;
 
 	// get file names from arguments
+	// max len should be 6
 	if (len > 6)
 	{
 		printf("Error: More arguments.\n");
@@ -333,15 +342,17 @@ void getfiles(int client_sockfd, char **arguments, int len)
 			fprintf(stderr, "File transferred successfully\n");
 		}
 		fclose(fp); // Close the file
-		// memset(file_size,0,sizeof(file_size));
+					// memset(file_size,0,sizeof(file_size));
 	}
 
 	else
 		printf("No files found");
 
-	
 	return;
 }
+// This function takes a string representation of a date and time in the format "YYYY-MM-DD"
+// and converts it to a Unix timestamp, which is the number of seconds since January 1, 1970.
+// It returns the Unix timestamp as a time_t value.
 time_t strtotime(const char *time_str)
 {
 	struct tm tm;
@@ -356,26 +367,17 @@ time_t strtotime(const char *time_str)
 	}
 	return t;
 }
-
+// Funtion to exectute dgetfiles - takes 2 dates date1 and date 2 and return all files including in range from date1 to date2.
 void dgetfiles(int client_sockfd, char **arguments)
 {
-    printf("arg1: %s", arguments[1]);
-	printf("arg2: %s \n", arguments[2]);
-	char *date1 = arguments[1];
-	// date1[strcspn(date1, "\n")] = '\0';
-	// strcat(date1, " 00:00:00");
 
+	char *date1 = arguments[1];
 	char *date2 = arguments[2];
-	// date2[strcspn(date2, "\n")] = '\0';
-	// strcat(date2, " 23:59:00");
-	printf("%s \n", date1);
-	printf("%s \n", date2);
 	// get home directory path
 	char *root_path = getenv("HOME");
 	char *temp_tar_name = "temp.tar.gz";
 	char cmd[1024];
 	sprintf(cmd, "find /Users/jaskaransingh/source -type f -newermt \"%s 00:00:00\" ! -newermt \"%s 23:59:00\" -print0 | tar czvf temp.tar.gz --null -T -", date1, date2);
-	printf("%s", cmd);
 	int result = system(cmd);
 	char *archive_name = "temp.tar.gz";
 
@@ -407,7 +409,7 @@ void dgetfiles(int client_sockfd, char **arguments)
 			fprintf(stderr, "File transferred successfully\n");
 		}
 		fclose(fp); // Close the file
-		// memset(file_size,0, sizeof(file_size));
+					// memset(file_size,0, sizeof(file_size));
 	}
 
 	else
@@ -415,7 +417,7 @@ void dgetfiles(int client_sockfd, char **arguments)
 
 	return;
 }
-
+// Funtion to exectue sgetfiles command - takes 2 sizes size1 and size2 and return all files including in range from size1 to size2.
 void sgetfiles(int client_sockfd, char **arguments)
 {
 
@@ -423,7 +425,6 @@ void sgetfiles(int client_sockfd, char **arguments)
 	char cmd[1024];
 	sprintf(cmd, "find /Users/jaskaransingh/source -type f -size +%sc -size -%sc -print0 | tar czvf temp.tar.gz --null -T -", arguments[1], arguments[2]);
 
-	// printf("%s", cmd);
 	int result = system(cmd);
 	if (result == 0)
 	{
@@ -461,110 +462,103 @@ void sgetfiles(int client_sockfd, char **arguments)
 	return;
 }
 
+// This function process all the commands coming from client
+// Funtion to process client request
 void processClient(int client_sockfd)
 {
 	char command[1024];
 	char response[1024];
 	int n, pid;
-	// count++;
-	// write(client_sockfd, "Send commands", 14);
+	while (1)
+	{
+		memset(files, 0, sizeof(files));
+		memset(command, 0, sizeof(command));
+		n = read(client_sockfd, command, 255);
 
-	// if (pid = fork()) /*reading csd messages */
-	// {
-		while (1)
-		{
-			memset(files, 0, sizeof(files));
-            memset(command, 0, sizeof(command));
-			n = read(client_sockfd, command, 255);
-
-			if (n <= 0)
-			{ // Check if no data received (client closed connection)
-				printf("Client disconnected.\n");
-				break; // Exit loop and terminate processclient() function
-			}
-
-			printf("\ngot input: %s\n", command);
-
-			char *arguments[MAX_ARGUMENTS];
-			int num_arguments = 0;
-
-			// Parse the command received from client
-			char *token = strtok(command, " "); // Tokenize command using space as delimiter
-
-			while (token != NULL)
-			{
-				arguments[num_arguments++] = token; // Store the token in the array
-				token = strtok(NULL, " ");			// Get the next token
-			}
-			arguments[num_arguments] = NULL; // Set the last element of the array to NULL
-
-			// Remove line breaks from tokens
-			remove_linebreak(arguments, num_arguments);
-
-			char *cmd = arguments[0]; // Extract first token as the command
-
-			printf("got command: %s\n", cmd);
-
-			// Process the command and generate response
-			if (strcmp(cmd, "findfile") == 0)
-			{
-
-				findfile(client_sockfd, arguments);
-			}
-			else if (strcmp(cmd, "sgetfiles") == 0)
-			{
-
-				sgetfiles(client_sockfd, arguments);
-			}
-			else if (strcmp(cmd, "dgetfiles") == 0)
-			{
-				printf("IN dgetfiles ");
-				dgetfiles(client_sockfd, arguments);
-			}
-			else if (strcmp(cmd, "getfiles") == 0)
-			{
-
-				getfiles(client_sockfd, arguments, num_arguments);
-			}
-			else if (strcmp(cmd, "gettargz") == 0)
-			{
-				int unzip = 0; // set to 1 to unzip the tar archive after creating it
-				// int num_extensions = num_arguments;
-
-				// printf("Number of extensions: %d\n", num_extensions);
-				// initialize the client socket and connect to the server
-
-				// call the gettargz function
-				int result = gettargz(client_sockfd, arguments, num_arguments, unzip);
-
-				// check the result of the function call
-				if (result == -1)
-				{
-					fprintf(stderr, "An error occurred while creating or sending the tar archive.\n");
-					exit(EXIT_FAILURE);
-				}
-			}
-			else if (strcmp(cmd, "quit") == 0)
-			{
-				printf("Client requested to quit.\n");
-				snprintf(response, MAX_RESPONSE_SIZE, "Server has closed the connection"); // Generate response for invalid command
-				write(client_sockfd, response, strlen(response));
-				snprintf(response, MAX_RESPONSE_SIZE, "quit"); // Generate response for invalid command
-				write(client_sockfd, response, strlen(response));
-				break; // Exit loop and terminate processclient() function
-			}
-			else
-			{
-				snprintf(response, MAX_RESPONSE_SIZE, "Invalid command\n"); // Generate response for invalid command
-				write(client_sockfd, response, strlen(response));
-				continue; // Continue to next iteration of loop to wait for new command
-			}
-			memset(files, 0, sizeof(files));
-            memset(command, 0, sizeof(command));
-			// Send response to client
-			// send(client_sockfd, response, strlen(response), 0);
+		if (n <= 0)
+		{ // Check if no data received (client closed connection)
+			printf("Client disconnected.\n");
+			break; // Exit loop and terminate processclient() function
 		}
-	// }
+
+		printf("\ngot input: %s\n", command);
+
+		char *arguments[MAX_ARGUMENTS];
+		int num_arguments = 0;
+
+		// Parse the command received from client
+		char *token = strtok(command, " "); // Tokenize command using space as delimiter
+
+		while (token != NULL)
+		{
+			arguments[num_arguments++] = token; // Store the token in the array
+			token = strtok(NULL, " ");			// Get the next token
+		}
+		arguments[num_arguments] = NULL; // Set the last element of the array to NULL
+
+		// Remove line breaks from tokens
+		remove_linebreak(arguments, num_arguments);
+
+		char *cmd = arguments[0]; // Extract first token as the command
+
+		printf("got command: %s\n", cmd);
+
+		// Process the command and generate response
+		if (strcmp(cmd, "findfile") == 0)
+		{
+
+			findfile(client_sockfd, arguments);
+		}
+		else if (strcmp(cmd, "sgetfiles") == 0)
+		{
+
+			sgetfiles(client_sockfd, arguments);
+		}
+		else if (strcmp(cmd, "dgetfiles") == 0)
+		{
+			printf("IN dgetfiles ");
+			dgetfiles(client_sockfd, arguments);
+		}
+		else if (strcmp(cmd, "getfiles") == 0)
+		{
+
+			getfiles(client_sockfd, arguments, num_arguments);
+		}
+		else if (strcmp(cmd, "gettargz") == 0)
+		{
+			int unzip = 0; // set to 1 to unzip the tar archive after creating it
+			// int num_extensions = num_arguments;
+			// initialize the client socket and connect to the server
+
+			// call the gettargz function
+			int result = gettargz(client_sockfd, arguments, num_arguments, unzip);
+
+			// check the result of the function call
+			if (result == -1)
+			{
+				fprintf(stderr, "An error occurred while creating or sending the tar archive.\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+		else if (strcmp(cmd, "quit") == 0)
+		{
+			printf("Client requested to quit.\n");
+			snprintf(response, MAX_RESPONSE_SIZE, "Server has closed the connection"); // Generate response for invalid command
+			write(client_sockfd, response, strlen(response));
+			snprintf(response, MAX_RESPONSE_SIZE, "quit"); // Generate response for invalid command
+			write(client_sockfd, response, strlen(response));
+
+			break; // Exit loop and terminate processclient() function
+		}
+		else
+		{
+			snprintf(response, MAX_RESPONSE_SIZE, "Invalid command\n"); // Generate response for invalid command
+			write(client_sockfd, response, strlen(response));
+			continue; // Continue to next iteration of loop to wait for new command
+		}
+		memset(files, 0, sizeof(files));
+		memset(command, 0, sizeof(command));
+	}
 }
 
 int main(int argc, char *argv[])
@@ -593,40 +587,46 @@ int main(int argc, char *argv[])
 
 	bind(sd, (struct sockaddr *)&servAdd, sizeof(servAdd));
 	listen(sd, 5);
-    int count = 0;
+	int count = 0;
 
+	// waiting for clients to connect
 	while (1)
-	{ 
+	{
 		csd = accept(sd, (struct sockaddr *)NULL, NULL);
 		printf("Got a client\n");
-        count++;
-        printf("Connections: %d\n", count);
-        char response[1024];
-        // if condition
-        if (count < 4)
-    {
-      snprintf(response, MAX_RESPONSE_SIZE, "success");
+		count++;
+		printf("Connections: %d\n", count);
+		char response[1024];
+		// First 4 client server will handle
+		if (count < 4)
+		{
+			snprintf(response, MAX_RESPONSE_SIZE, "success");
+		}
+		// Next 4 clients sending for mirror
+		else if (count < 8)
+		{
+			snprintf(response, MAX_RESPONSE_SIZE, "8001");
+		}
+		// Remaing  handled by the server and the mirror in an alternating manner
+		else
+		{
+			if (count % 2 == 0)
+				snprintf(response, MAX_RESPONSE_SIZE, "success");
+			else
+				snprintf(response, MAX_RESPONSE_SIZE, "8001");
+		}
+		write(csd, response, strlen(response));
 
-    }
-    else if (count < 8)
-    {
-      snprintf(response, MAX_RESPONSE_SIZE, "8001");
-    }
+		if (!fork())
+		{ // Child process
 
-    else
-    {
-      if (count % 2 == 0)
-        snprintf(response, MAX_RESPONSE_SIZE, "success");
-      else
-        snprintf(response, MAX_RESPONSE_SIZE, "8001");
-    }
-        write(csd, response, strlen(response));
-        // pause();
-		if (!fork()) // Child process
 			processClient(csd);
-		close(csd);
-        
-		waitpid(0, &status, WNOHANG); // waitpid?
-        // count--;
+
+			close(csd);
+
+			return 0;
+		}
+
+		waitpid(0, &status, WNOHANG);
 	}
 } // End main
