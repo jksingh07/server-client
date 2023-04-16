@@ -24,14 +24,19 @@
 #define MAX_BUFFER_SIZE 1024
 #define MAX_EXTENSION_COUNT 6
 
+// Terminal commands to start the project
 // cd ASP-Project
 // gcc -o server server.c
 // ./server
 // gcc -o client client.c
-// ./client 127.0.0.1 8080
+// ./client 127.0.0.1 8000
+
 char files[MAX_BUFFER_SIZE];
+// int count;
 // char *files;
 
+
+// Function to transfer tar file which is temp.tar.gz to the client side
 int transfer_file(int new_socket, const char *filename)
 {
 	// Open file to be transferred
@@ -52,10 +57,13 @@ int transfer_file(int new_socket, const char *filename)
 	}
 
 	// Close file and socket
+	memset(buffer,0,sizeof(buffer));
 	close(fd);
 
 	return 0;
 }
+
+// Function to recursively iterate through the directories/ nested diretories and search for the file with that extension
 int recursive_search(char *dir_name, char **file_types, int extension_count, char *files, int *files_len)
 {
 	DIR *dir;
@@ -64,6 +72,7 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 	int status;
 	int i;
 
+	// Open Directory from where you want to start the search
 	if ((dir = opendir(dir_name)) == NULL)
 	{
 		perror("opendir failed");
@@ -81,7 +90,7 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 		{
 			for (i = 0; i < extension_count; i++)
 			{
-				if (fnmatch(file_types[i], ent->d_name, 0) == 0)
+				if (fnmatch(file_types[i], ent->d_name, 0) == 0) // matching the extension of the file
 				{
 					if (*files_len + strlen(dir_name) + strlen(ent->d_name) + 2 > MAX_BUFFER_SIZE)
 					{
@@ -99,9 +108,12 @@ int recursive_search(char *dir_name, char **file_types, int extension_count, cha
 		}
 	}
 	closedir(dir);
+	memset(buffer,0,sizeof(buffer));
 
 	return 0;
 }
+
+// This function removes // with / in the path
 void replace(char *str)
 {
 	char *ptr = str;
@@ -111,6 +123,7 @@ void replace(char *str)
 	}
 }
 
+// This function will make the list of arguments like an array
 void remove_linebreak(char **tokens, int num_tokens)
 {
 	for (int i = 0; i < num_tokens; i++)
@@ -124,14 +137,15 @@ void remove_linebreak(char **tokens, int num_tokens)
 	}
 }
 
+// Function to get files with particular extension (Up to 6 exetnsions accepted)
 int gettargz(int client_sockfd, char **extensions, int extension_count, int unzip)
 {
 	DIR *dir;
 	struct dirent *ent;
 	// char *home_dir = getenv("HOME");
-	char *home_dir = "/Users/jaskaransingh/source";
+	char *home_dir = "/Users/jaskaransingh/source"; // giving personal folder to reduce computation and for testing
 	char buffer[MAX_BUFFER_SIZE];
-	char *temp_tar_name = "temp.tar.gz";
+	char *temp_tar_name = "temp.tar.gz"; // tar file will be generated with this name
 	char *tar_command_format = "tar -cf %s %s";
 	int status;
 	int i;
@@ -204,6 +218,7 @@ int gettargz(int client_sockfd, char **extensions, int extension_count, int unzi
 		fprintf(stderr, "File transferred successfully\n");
 	}
 	fclose(fp);
+	// memset(file_size, 0, sizeof(file_size));
 	return 0;
 }
 
@@ -215,7 +230,7 @@ void findfile(int client_sockfd, char **arguments)
 	// implement todo
 	printf("inside findfile\n");
 	char response[1024];
-
+	memset(response, 0, sizeof(response));
 	printf("filename: %s\n", filename);
 
 	char *home_dir = getenv("HOME");										  // Get the home directory path
@@ -249,9 +264,10 @@ void findfile(int client_sockfd, char **arguments)
 	{
 		printf("Error opening pipe to command\n");
 	}
-	free(command); // Free the memory allocated for the command string
 
 	write(client_sockfd, response, strlen(response));
+	memset(response, 0, sizeof(response));
+	free(command); // Free the memory allocated for the command string
 }
 
 void getfiles(int client_sockfd, char **arguments, int len)
@@ -317,11 +333,13 @@ void getfiles(int client_sockfd, char **arguments, int len)
 			fprintf(stderr, "File transferred successfully\n");
 		}
 		fclose(fp); // Close the file
+		// memset(file_size,0,sizeof(file_size));
 	}
 
 	else
 		printf("No files found");
 
+	
 	return;
 }
 time_t strtotime(const char *time_str)
@@ -389,6 +407,7 @@ void dgetfiles(int client_sockfd, char **arguments)
 			fprintf(stderr, "File transferred successfully\n");
 		}
 		fclose(fp); // Close the file
+		// memset(file_size,0, sizeof(file_size));
 	}
 
 	else
@@ -402,7 +421,7 @@ void sgetfiles(int client_sockfd, char **arguments)
 
 	char *temp_tar_name = "temp.tar.gz";
 	char cmd[1024];
-	sprintf(cmd, "find /Users/jaskaransingh -type f -size +%sc -size -%sc -print0 | tar czvf temp.tar.gz --null -T -", arguments[1], arguments[2]);
+	sprintf(cmd, "find /Users/jaskaransingh/source -type f -size +%sc -size -%sc -print0 | tar czvf temp.tar.gz --null -T -", arguments[1], arguments[2]);
 
 	// printf("%s", cmd);
 	int result = system(cmd);
@@ -447,6 +466,7 @@ void processClient(int client_sockfd)
 	char command[1024];
 	char response[1024];
 	int n, pid;
+	// count++;
 	// write(client_sockfd, "Send commands", 14);
 
 	// if (pid = fork()) /*reading csd messages */
@@ -539,7 +559,8 @@ void processClient(int client_sockfd)
 				write(client_sockfd, response, strlen(response));
 				continue; // Continue to next iteration of loop to wait for new command
 			}
-
+			memset(files, 0, sizeof(files));
+            memset(command, 0, sizeof(command));
 			// Send response to client
 			// send(client_sockfd, response, strlen(response), 0);
 		}
@@ -573,6 +594,7 @@ int main(int argc, char *argv[])
 	bind(sd, (struct sockaddr *)&servAdd, sizeof(servAdd));
 	listen(sd, 5);
     int count = 0;
+
 	while (1)
 	{ 
 		csd = accept(sd, (struct sockaddr *)NULL, NULL);

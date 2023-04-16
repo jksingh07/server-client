@@ -17,6 +17,7 @@
 #define PORT 8000
 #define MAX_ARGUMENTS 10
 #define BUFFER_SIZE 1024
+#define MIRROR_IP "192.168.2.33"
 
 void remove_linebreak(char **tokens, int num_tokens)
 {
@@ -238,7 +239,7 @@ int main(int argc, char *argv[])
 		serv_addr.sin_family = AF_INET;
 		serv_addr.sin_port = htons(8001);
 
-		if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0)
+		if (inet_pton(AF_INET, MIRROR_IP, &serv_addr.sin_addr) <= 0)
 		{
 			printf("Invalid address or Address not supported\n");
 			return 1;
@@ -257,9 +258,10 @@ int main(int argc, char *argv[])
 	{
 
 		printf("C$ ");
+		memset(buffer, 0, sizeof(buffer));
 		fgets(buffer, 1024, stdin);
 		// buffer[strcspn(buffer, "\n")] = 0; // remove newline character
-
+		// memset(buffer, 0, sizeof(buffer));
 		strcpy(valbuf, buffer);
 		if (validate_input(valbuf) == -1)
 		{
@@ -268,10 +270,8 @@ int main(int argc, char *argv[])
 
 		// send command to server
 		send(sock, buffer, strlen(buffer), 0);
-
-		/*  **************************************************************** Tanmay File transfer Code **************************************************************** */
-		/*  **********************************************************File Transfer, File Size adjusment, Loop breaking and Unzip File on "-u"  *****************************************************************/
-
+		
+		
 		char *arguments[MAX_ARGUMENTS];
 		int num_arguments = 0;
 
@@ -289,13 +289,13 @@ int main(int argc, char *argv[])
 		remove_linebreak(arguments, num_arguments);
 
 		char *buffcmd = arguments[0]; // Extract first token as the command
-
+		memset(buffer, 0, sizeof(buffer));
 		// Compare buffer with pattern
 		if (strcmp(buffcmd, "gettargz") == 0 || strcmp(buffcmd, "getfiles") == 0 || strcmp(buffcmd, "dgetfiles") == 0 || strcmp(buffcmd, "sgetfiles") == 0)
 		{
 			printf("Buffer matches the pattern\n");
 
-			send(sock, filename, strlen(filename), 0);
+			// send(sock, filename, strlen(filename), 0);
 
 			// Receive file from server
 			FILE *fp = fopen(filename, "wb");
@@ -307,6 +307,7 @@ int main(int argc, char *argv[])
 
 			// Get file size from server
 			long file_size;
+			// memset(file_size, 0, sizeof(file_size));
 			recv(sock, &file_size, sizeof(file_size), 0);
 
 			printf(" File Size %ld\n", file_size);
@@ -352,10 +353,10 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			printf("Buffer does not match the pattern so no need for file transfer\n");
+			printf("Buffer does not match the file trasfer or unzip pattern so no need for file transfer\n");
 		}
 
-		/*  **************************************************************** Code Modification Ends - tanmay  *****************************************************************/
+		
 
 		// receive response from server
 		memset(buffer, 0, sizeof(buffer));
@@ -371,6 +372,7 @@ int main(int argc, char *argv[])
 			printf("Server disconnected\n");
 			break;
 		}
+		fflush(stdout);
 	}
 
 	close(sock);
