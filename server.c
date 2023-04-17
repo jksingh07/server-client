@@ -68,6 +68,11 @@ int transfer_file(int new_socket, const char *filename)
 }
 
 // Function to recursively iterate through the directories/ nested diretories and search for the file with that extension
+// It starts by opening the directory and iterating through its contents using the readdir function. 
+// If it encounters a subdirectory, it recursively calls itself with the subdirectory path. 
+// If it encounters a file, it compares its extension with the list of extensions provided. 
+// If it finds a match, it appends the file path to the buffer and increments the buffer length.
+// The function returns 0 if it completes successfully, and -1 if there are too many files found or if there is an error opening the directory.
 int recursive_search(char *dir_name, char **file_types, int extension_count, char *files, int *files_len)
 {
 	DIR *dir;
@@ -377,6 +382,7 @@ void dgetfiles(int client_sockfd, char **arguments)
 	char *root_path = getenv("HOME");
 	char *temp_tar_name = "temp.tar.gz";
 	char cmd[1024];
+	// creating a compressed tar archive of selected files in a directory based on time limits specified by the arguments array.
 	sprintf(cmd, "find /Users/jaskaransingh/source -type f -newermt \"%s 00:00:00\" ! -newermt \"%s 23:59:00\" -print0 | tar czvf temp.tar.gz --null -T -", date1, date2);
 	int result = system(cmd);
 	char *archive_name = "temp.tar.gz";
@@ -423,6 +429,7 @@ void sgetfiles(int client_sockfd, char **arguments)
 
 	char *temp_tar_name = "temp.tar.gz";
 	char cmd[1024];
+	// creating a compressed tar archive of selected files in a directory based on size limits specified by the arguments array.
 	sprintf(cmd, "find /Users/jaskaransingh/source -type f -size +%sc -size -%sc -print0 | tar czvf temp.tar.gz --null -T -", arguments[1], arguments[2]);
 
 	int result = system(cmd);
@@ -438,9 +445,10 @@ void sgetfiles(int client_sockfd, char **arguments)
 			fprintf(stderr, "Error opening file\n");
 			return;
 		}
-		fseek(fp, 0, SEEK_END);
-		file_size = ftell(fp);
-		fseek(fp, 0, SEEK_SET);
+		fseek(fp, 0, SEEK_END); // pointer at end
+		file_size = ftell(fp);  // using the pointer at end calcuates file size
+		fseek(fp, 0, SEEK_SET); // reset pointer to start of file
+
 		// Send the size of the file as a long int
 		send(client_sockfd, &file_size, sizeof(file_size), 0);
 		// Transfer the file
@@ -587,7 +595,7 @@ int main(int argc, char *argv[])
 
 	bind(sd, (struct sockaddr *)&servAdd, sizeof(servAdd));
 	listen(sd, 5);
-	int count = 0;
+	int count = 0; // keep track of no. of connections
 
 	// waiting for clients to connect
 	while (1)

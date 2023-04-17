@@ -23,7 +23,7 @@
 #include <time.h>
 
 // DEFINING MACROS
-#define PORT 8000    // PORT TO CONNECT WITH CLIENT
+#define PORT 8000    // PORT TO CONNECT WITH SERVER
 #define MAX_ARGUMENTS 10
 #define BUFFER_SIZE 1024
 #define MIRROR_IP "192.168.2.33" // IP TO CONNECT WITH MIRROR IF SERVER REDIRECTS LOAD/CONNECTIONS
@@ -54,7 +54,8 @@ time_t convertStringToDate(char *date)
 	}
 	tm.tm_isdst = -1;
 	time_t temp;
-	temp = mktime(&tm);
+	temp = mktime(&tm); // The mktime function takes a pointer to a struct tm and 
+						//returns a time_t value that represents the number of seconds since January 1, 1970.
 	return temp;
 }
 
@@ -112,7 +113,7 @@ int input_validation(char *input_command)
 			return -1;
 		}
 
-		int size1 = atoi(local[0]);
+		int size1 = atoi(local[0]); // converts a string argument to an integer.
 		int size2 = atoi(local[1]);
 		if (size1 < 0 || size2 < 0)
 		{
@@ -158,7 +159,7 @@ int input_validation(char *input_command)
 	if (strcmp(cmd, "getfiles") == 0)
 	{
 
-		if (isUnzip == 0 && count > 6)
+		if (isUnzip == 0 && count > 6) // without unzip args count can only be 6 but if count>6 without unzip then its invalid
 		{
 			fprintf(stderr,
 					"Command Invalid - getfiles file1 file2 file3 file4 file5 file6(file 1 ..up to file6) <-u>\n");
@@ -177,7 +178,7 @@ int input_validation(char *input_command)
 
 	if (strcmp(cmd, "gettargz") == 0)
 	{
-		if (isUnzip == 0 && count > 6)
+		if (isUnzip == 0 && count > 6) // without unzip args count can only be 6 but if count>6 without unzip then its invalid
 		{
 			fprintf(stderr, "Command Invalid - gettargz <extension list> <-u> //up to 6 different file types\n");
 			return -1;
@@ -224,14 +225,18 @@ int main(int argc, char *argv[])
 	strcpy(server_ip, argv[1]);
 
 	// creating client socket
+	// AF_INET and SOCK_STREAM are constants used as parameters in the socket function to specify the type of communication protocol to be used by the socket.
+	// AF_INET stands for Address Family Internet and is used for IPv4 protocol. It is the most common address family used for networking.
+	// SOCK_STREAM is used for a reliable, stream-oriented connection between two sockets, which means that data is transmitted in a continuous stream and arrives at the receiver in the same order as it was sent by the sender.
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		printf("Socket creation error\n");
 		return 1;
 	}
 	// Configure server address
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
+	// configuring the sockaddr_in structure (serv_addr) to represent the server's address and port.
+	serv_addr.sin_family = AF_INET; //  represents the address family of the socket (in this case, IPv4).
+	serv_addr.sin_port = htons(PORT); // serv_addr.sin_port is being set to the port number that the server will listen on. htons() is a function that converts the port number from host byte order to network byte order, which is necessary for communicating over a network.
 
 	// Convert IPv4 and IPv6 addresses from text to binary form
 	if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0)
